@@ -19,6 +19,21 @@ Direção visual editorial, marfim, verde profundo, detalhes pêssego e títulos
 
 O produto é apresentado como em desenvolvimento. Os recursos descritos são a proposta, não comprovação de implementação do sistema administrativo.
 
+## Formulário e configuração
+
+O formulário é uma demonstração com validação local: não envia, não armazena e não confirma cadastro. O contrato sugerido e os requisitos para a integração real estão em [docs/lead-integration.md](docs/lead-integration.md).
+
+Copie `.env.example` para `.env.local` e defina `SITE_URL` com a origem pública real antes do build de produção. Essa variável configura as URLs absolutas das imagens sociais; sem ela o Next.js usa localhost em desenvolvimento. Não há domínio confirmado nem URL canônica configurada.
+
+## Verificação no navegador
+
+```sh
+corepack pnpm build
+corepack pnpm test:e2e
+```
+
+Os testes usam Chrome instalado (`channel: chrome`) e iniciam o servidor de produção automaticamente. Se necessário, instale o navegador com `corepack pnpm exec playwright install chrome`. Cobrem larguras de 320, 390, 768, 1024 e 1440 px, links internos, menu e FAQ por teclado, metadados, movimento reduzido e validação sem envio ou persistência. Capturas locais ficam em `.artifacts/`, fora do Git.
+
 ## Incrementos
 
 1. Fundação, header, hero e prévia ilustrativa.

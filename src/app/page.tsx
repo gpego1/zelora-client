@@ -1,18 +1,173 @@
-import { ArrowRight, ArrowUpRight, CalendarDays, Users, Package, Wallet, Sparkles } from 'lucide-react';
-import { Header } from '@/components/header';
-import { ProductPreview } from '@/components/product-preview';
-import { ProductSections } from '@/components/product-sections';
-import { InterestForm } from '@/components/interest-form';
-import { Faq } from '@/components/faq';
+import {
+  ArrowRight,
+  ArrowUpRight,
+  CalendarDays,
+  Users,
+  Package,
+  Wallet,
+  Sparkles,
+} from "lucide-react";
+import { Header } from "@/components/header";
+import { ProductPreview } from "@/components/product-preview";
+import { ProductSections } from "@/components/product-sections";
+import { InterestForm } from "@/components/interest-form";
+import { Faq } from "@/components/faq";
 
 export default function Home() {
-  return <><Header/><main id="inicio"><section className="hero container">
-    <div className="hero-copy"><p className="eyebrow"><span className="tiny-dot"/> MAIS LEVEZA NA GESTÃO. MAIS ESPAÇO PARA CUIDAR.</p><h1>Seu talento é cuidar.<br/>O nosso é <em>organizar.</em></h1><p className="hero-description">Mais tempo para cuidar dos clientes. Mais controle para gerir seu negócio.</p><p className="muted hero-detail">Agendamentos, clientes, estoque e caixa em um só lugar. Conheça a proposta do Zelora para transformar a organização da sua rotina.</p><div className="hero-actions"><a href="#interesse" className="button">Quero conhecer o Zelora <ArrowUpRight size={18}/></a><a href="#funcionalidades" className="text-link">Explorar funcionalidades <ArrowRight size={16}/></a></div><p className="development-note"><span className="tiny-dot"/> Em desenvolvimento, com o seu dia a dia em mente.</p></div>
-    <ProductPreview/>
-  </section><div className="audience-strip"><div className="container"><span>FEITO PARA QUEM CUIDA</span><p>Barbearias <i/> Salões de beleza <i/> Estúdios de autocuidado <i/> Centros de estética</p><Sparkles size={20}/></div></div>
-  <section className="section container" id="funcionalidades"><p className="eyebrow">CADA COISA NO SEU LUGAR</p><div className="section-heading"><h2>Menos pontas soltas.<br/><em>Mais visão do todo.</em></h2><p>Seu negócio já tem muitos detalhes.<br/>Organizar tudo isso pode ser mais simples.</p></div><div className="foundation-grid">{[[CalendarDays,'Agenda organizada','Dos horários espalhados nas conversas a uma agenda por profissional. Veja disponibilidades, bloqueie períodos e acompanhe os agendamentos.'],[Users,'Clientes por perto','Do histórico perdido a um atendimento com continuidade. Encontre informações e preferências de cada cliente.'],[Package,'Estoque acompanhado','Do produto que acaba de surpresa a uma visão das entradas, vendas e consumo de insumos.'],[Wallet,'Caixa sob controle','Dos registros em vários lugares a uma visão dos recebimentos e despesas, por forma de pagamento.']].map(([Icon,title,description]) => { const I = Icon as typeof CalendarDays; return <article className="foundation" key={String(title)}><I size={23}/><h3>{String(title)}</h3><p>{String(description)}</p></article>; })}</div></section>
-  <ProductSections/>
-  <Faq/>
-  <section id="interesse" className="interest-section"><div className="container section interest-layout"><div><p className="eyebrow">O PRÓXIMO CAPÍTULO DO SEU NEGÓCIO</p><h2>Mais organização.<br/>Mais espaço para<br/><em>o que você faz de melhor.</em></h2><p>Conheça uma forma mais organizada de cuidar do seu negócio. Estamos construindo o Zelora para reunir os detalhes da sua rotina.</p><div className="interest-signature"><span className="brand-symbol" aria-hidden="true">z</span><span>Seu cuidado faz a diferença.<br/>Sua gestão também pode acompanhar.</span></div></div><InterestForm/></div></section>
-  </main><footer className="container footer"><div><a className="wordmark" href="#inicio" aria-label="Zelora, voltar ao início">zelora.</a><p>Sua agenda organizada.<br/>Seu negócio no controle.</p></div><nav aria-label="Navegação do rodapé"><a href="#funcionalidades">Funcionalidades</a><a href="#como-funciona">Como funciona</a><a href="#para-quem">Para quem</a></nav><small>© {new Date().getFullYear()} Zelora.<br/>Produto em desenvolvimento.</small></footer></>;
+  return (
+    <>
+      <Header />
+      <main id="conteudo" tabIndex={-1}>
+        <section id="inicio" className="hero container">
+          <div className="hero-copy">
+            <p className="eyebrow">
+              <span className="tiny-dot" /> MAIS LEVEZA NA GESTÃO. MAIS ESPAÇO
+              PARA CUIDAR.
+            </p>
+            <h1>
+              Seu talento é cuidar.
+              <br />O nosso é <em>organizar.</em>
+            </h1>
+            <p className="hero-description">
+              Mais tempo para cuidar dos clientes. Mais controle para gerir seu
+              negócio.
+            </p>
+            <p className="muted hero-detail">
+              Agendamentos, clientes, estoque e caixa em um só lugar. Conheça a
+              proposta do Zelora para transformar a organização da sua rotina.
+            </p>
+            <div className="hero-actions">
+              <a href="#interesse" className="button">
+                Quero conhecer o Zelora <ArrowUpRight size={18} />
+              </a>
+              <a href="#funcionalidades" className="text-link">
+                Explorar funcionalidades <ArrowRight size={16} />
+              </a>
+            </div>
+            <p className="development-note">
+              <span className="tiny-dot" /> Em desenvolvimento, com o seu dia a
+              dia em mente.
+            </p>
+          </div>
+          <ProductPreview />
+        </section>
+        <div className="audience-strip">
+          <div className="container">
+            <span>FEITO PARA QUEM CUIDA</span>
+            <p>
+              Barbearias <i /> Salões de beleza <i /> Estúdios de autocuidado{" "}
+              <i /> Centros de estética
+            </p>
+            <Sparkles size={20} />
+          </div>
+        </div>
+        <section className="section container" id="funcionalidades">
+          <p className="eyebrow">CADA COISA NO SEU LUGAR</p>
+          <div className="section-heading">
+            <h2>
+              Menos pontas soltas.
+              <br />
+              <em>Mais visão do todo.</em>
+            </h2>
+            <p>
+              Seu negócio já tem muitos detalhes.
+              <br />
+              Organizar tudo isso pode ser mais simples.
+            </p>
+          </div>
+          <div className="foundation-grid">
+            {[
+              [
+                CalendarDays,
+                "Agenda organizada",
+                "Dos horários espalhados nas conversas a uma agenda por profissional. Veja disponibilidades, bloqueie períodos e acompanhe os agendamentos.",
+              ],
+              [
+                Users,
+                "Clientes por perto",
+                "Do histórico perdido a um atendimento com continuidade. Encontre informações e preferências de cada cliente.",
+              ],
+              [
+                Package,
+                "Estoque acompanhado",
+                "Do produto que acaba de surpresa a uma visão das entradas, vendas e consumo de insumos.",
+              ],
+              [
+                Wallet,
+                "Caixa sob controle",
+                "Dos registros em vários lugares a uma visão dos recebimentos e despesas, por forma de pagamento.",
+              ],
+            ].map(([Icon, title, description]) => {
+              const I = Icon as typeof CalendarDays;
+              return (
+                <article className="foundation" key={String(title)}>
+                  <I size={23} />
+                  <h3>{String(title)}</h3>
+                  <p>{String(description)}</p>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+        <ProductSections />
+        <Faq />
+        <section id="interesse" className="interest-section">
+          <div className="container section interest-layout">
+            <div>
+              <p className="eyebrow">O PRÓXIMO CAPÍTULO DO SEU NEGÓCIO</p>
+              <h2>
+                Mais organização.
+                <br />
+                Mais espaço para
+                <br />
+                <em>o que você faz de melhor.</em>
+              </h2>
+              <p>
+                Conheça uma forma mais organizada de cuidar do seu negócio.
+                Estamos construindo o Zelora para reunir os detalhes da sua
+                rotina.
+              </p>
+              <div className="interest-signature">
+                <span className="brand-symbol" aria-hidden="true">
+                  z
+                </span>
+                <span>
+                  Seu cuidado faz a diferença.
+                  <br />
+                  Sua gestão também pode acompanhar.
+                </span>
+              </div>
+            </div>
+            <InterestForm />
+          </div>
+        </section>
+      </main>
+      <footer className="container footer">
+        <div>
+          <a
+            className="wordmark"
+            href="#inicio"
+            aria-label="Zelora, voltar ao início"
+          >
+            zelora.
+          </a>
+          <p>
+            Sua agenda organizada.
+            <br />
+            Seu negócio no controle.
+          </p>
+        </div>
+        <nav aria-label="Navegação do rodapé">
+          <a href="#funcionalidades">Funcionalidades</a>
+          <a href="#como-funciona">Como funciona</a>
+          <a href="#para-quem">Para quem</a>
+        </nav>
+        <small>
+          © {new Date().getFullYear()} Zelora.
+          <br />
+          Produto em desenvolvimento.
+        </small>
+      </footer>
+    </>
+  );
 }
