@@ -2,6 +2,8 @@ import { ArrowRight, ArrowUpRight, CalendarDays, Users, Package, Wallet, Sparkle
 import { Header } from '@/components/header';
 import { ProductPreview } from '@/components/product-preview';
 import { ProductSections } from '@/components/product-sections';
+import { InterestForm } from '@/components/interest-form';
+import { Faq } from '@/components/faq';
 
 export default function Home() {
   return <><Header/><main id="inicio"><section className="hero container">
@@ -10,6 +12,7 @@ export default function Home() {
   </section><div className="audience-strip"><div className="container"><span>FEITO PARA QUEM CUIDA</span><p>Barbearias <i/> Salões de beleza <i/> Estúdios de autocuidado <i/> Centros de estética</p><Sparkles size={20}/></div></div>
   <section className="section container" id="funcionalidades"><p className="eyebrow">CADA COISA NO SEU LUGAR</p><div className="section-heading"><h2>Menos pontas soltas.<br/><em>Mais visão do todo.</em></h2><p>Seu negócio já tem muitos detalhes.<br/>Organizar tudo isso pode ser mais simples.</p></div><div className="foundation-grid">{[[CalendarDays,'Agenda organizada','Dos horários espalhados nas conversas a uma agenda por profissional. Veja disponibilidades, bloqueie períodos e acompanhe os agendamentos.'],[Users,'Clientes por perto','Do histórico perdido a um atendimento com continuidade. Encontre informações e preferências de cada cliente.'],[Package,'Estoque acompanhado','Do produto que acaba de surpresa a uma visão das entradas, vendas e consumo de insumos.'],[Wallet,'Caixa sob controle','Dos registros em vários lugares a uma visão dos recebimentos e despesas, por forma de pagamento.']].map(([Icon,title,description]) => { const I = Icon as typeof CalendarDays; return <article className="foundation" key={String(title)}><I size={23}/><h3>{String(title)}</h3><p>{String(description)}</p></article>; })}</div></section>
   <ProductSections/>
-  <section id="interesse" className="section container initial-contact"><p className="eyebrow">VAMOS ORGANIZAR ESSE PRÓXIMO PASSO?</p><h2>Uma nova forma de cuidar<br/><em>do seu negócio está chegando.</em></h2><p>Estamos desenvolvendo o Zelora. Em breve, conheça aqui a proposta completa.</p></section>
-  </main><footer className="container footer"><a className="wordmark" href="#inicio">zelora.</a><p>Sua agenda organizada. Seu negócio no controle.</p><small>© {new Date().getFullYear()} Zelora</small></footer></>;
+  <Faq/>
+  <section id="interesse" className="interest-section"><div className="container section interest-layout"><div><p className="eyebrow">O PRÓXIMO CAPÍTULO DO SEU NEGÓCIO</p><h2>Mais organização.<br/>Mais espaço para<br/><em>o que você faz de melhor.</em></h2><p>Conheça uma forma mais organizada de cuidar do seu negócio. Estamos construindo o Zelora para reunir os detalhes da sua rotina.</p><div className="interest-signature"><span className="brand-symbol" aria-hidden="true">z</span><span>Seu cuidado faz a diferença.<br/>Sua gestão também pode acompanhar.</span></div></div><InterestForm/></div></section>
+  </main><footer className="container footer"><div><a className="wordmark" href="#inicio" aria-label="Zelora, voltar ao início">zelora.</a><p>Sua agenda organizada.<br/>Seu negócio no controle.</p></div><nav aria-label="Navegação do rodapé"><a href="#funcionalidades">Funcionalidades</a><a href="#como-funciona">Como funciona</a><a href="#para-quem">Para quem</a></nav><small>© {new Date().getFullYear()} Zelora.<br/>Produto em desenvolvimento.</small></footer></>;
 }
