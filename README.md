@@ -21,7 +21,7 @@ O produto é apresentado como em desenvolvimento. Os recursos descritos são a p
 
 ## Formulário e configuração
 
-O formulário envia os dados para `gpego786@gmail.com` pela rota de servidor `/api/interests`, usando Resend. Configure `RESEND_API_KEY` e `INTEREST_EMAIL_FROM` no ambiente privado do servidor. Sem essas variáveis, o envio retorna erro e os dados permanecem no formulário. Configuração e contrato em [docs/lead-integration.md](docs/lead-integration.md).
+O formulário envia os dados para `gpego786@gmail.com` pela rota de servidor `/api/interests`, usando SMTP/Nodemailer. Configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER` e `SMTP_PASS` (senha de app no Gmail) no ambiente privado do servidor. `INTEREST_EMAIL_FROM` é opcional. Sem essas variáveis, o envio retorna erro e os dados permanecem no formulário. Configuração e contrato em [docs/lead-integration.md](docs/lead-integration.md).
 
 Copie `.env.example` para `.env.local` e defina `SITE_URL` com a origem pública real antes do build de produção. Essa variável configura as URLs absolutas das imagens sociais; sem ela o Next.js usa localhost em desenvolvimento. Não há domínio confirmado nem URL canônica configurada.
 

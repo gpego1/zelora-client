@@ -1,5 +1,11 @@
 # Histórico de verificação da landing
 
+## Atualização: SMTP substitui Resend
+
+O envio atual usa Nodemailer/SMTP, com Gmail configurável por senha de app. Os requisitos são `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER` e `SMTP_PASS`. A suíte verifica TLS 465/587, aceite do destinatário, erros SMTP, fechamento do transporte e deduplicação por 10 minutos na mesma instância. Não houve envio real; requer credenciais SMTP no ambiente privado. As seções abaixo registram versões anteriores.
+
+Lint, tipos, build e 13 testes aprovados nesta atualização.
+
 ## Atualização: envio por e-mail
 
 A captação demonstrativa da revisão inicial abaixo foi substituída por `/api/interests`, com envio via Resend para `gpego786@gmail.com`. A suíte cobre também contrato do e-mail, validação no servidor, idempotência, falta de configuração, falhas do provedor e fluxo de envio no navegador. Os testes simulam o provedor; entrega real depende de `RESEND_API_KEY`, `INTEREST_EMAIL_FROM` e teste na caixa de destino.

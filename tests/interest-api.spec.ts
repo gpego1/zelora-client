@@ -1,5 +1,12 @@
 import { test, expect } from "@playwright/test";
-import { POST } from "../src/app/api/interests/route";
+import { createInterestHandler } from "../src/lib/interest-handler";
+import {
+  createEmailSender,
+  interestMessage,
+  smtpConfigured,
+  smtpOptions,
+} from "../src/lib/interest-mail";
+import type { Interest } from "../src/lib/interest";
 
 const lead = {
   name: "Ana Teste",
@@ -16,72 +23,71 @@ const request = (data: unknown) =>
     },
     body: JSON.stringify(data),
   });
-let originalFetch: typeof fetch;
-let env: { key?: string; from?: string; site?: string };
+const keys = [
+  "SMTP_HOST",
+  "SMTP_PORT",
+  "SMTP_USER",
+  "SMTP_PASS",
+  "INTEREST_EMAIL_FROM",
+  "SITE_URL",
+] as const;
+let env: Record<string, string | undefined>;
 test.beforeEach(() => {
-  originalFetch = globalThis.fetch;
-  env = {
-    key: process.env.RESEND_API_KEY,
-    from: process.env.INTEREST_EMAIL_FROM,
-    site: process.env.SITE_URL,
-  };
-  process.env.RESEND_API_KEY = "test-key";
-  process.env.INTEREST_EMAIL_FROM = "Zelora <contato@example.com>";
-  process.env.SITE_URL = "http://localhost:3000";
+  env = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+  Object.assign(process.env, {
+    SMTP_HOST: "smtp.gmail.com",
+    SMTP_PORT: "465",
+    SMTP_USER: "sender@example.com",
+    SMTP_PASS: "test-only-password",
+    INTEREST_EMAIL_FROM: "",
+    SITE_URL: "http://localhost:3000",
+  });
 });
 test.afterEach(() => {
-  globalThis.fetch = originalFetch;
-  for (const [key, value] of Object.entries({
-    RESEND_API_KEY: env.key,
-    INTEREST_EMAIL_FROM: env.from,
-    SITE_URL: env.site,
-  })) {
-    if (value === undefined) delete process.env[key];
-    else process.env[key] = value;
-  }
+  for (const key of keys)
+    if (env[key] === undefined) delete process.env[key];
+    else process.env[key] = env[key];
 });
 
-test("sends all fields to fixed recipient with reply-to and stable retry key", async () => {
-  const calls: RequestInit[] = [];
-  globalThis.fetch = async (url, init) => {
-    expect(url).toBe("https://api.resend.com/emails");
-    calls.push(init!);
-    return Response.json({ id: "mock-email-id" });
-  };
-  expect(
-    (await POST(request({ ...lead, to: "attacker@example.com" }))).status,
-  ).toBe(201);
-  expect((await POST(request(lead))).status).toBe(201);
-  const body = JSON.parse(String(calls[0].body));
-  expect(body.to).toEqual(["gpego786@gmail.com"]);
-  expect(body.from).toBe("Zelora <contato@example.com>");
-  expect(body.reply_to).toBe("ana@example.com");
+test("sends all fields to fixed recipient and deduplicates concurrent/repeated requests", async () => {
+  const calls: Interest[] = [];
+  const post = createInterestHandler(async (data) => {
+    calls.push(data);
+  }, smtpConfigured);
+  const responses = await Promise.all([
+    post(request({ ...lead, to: "attacker@example.com" })),
+    post(request(lead)),
+  ]);
+  expect(responses.map((response) => response.status)).toEqual([201, 201]);
+  expect(calls).toHaveLength(1);
+  expect((await post(request(lead))).status).toBe(201);
+  expect(calls).toHaveLength(1);
+  const message = interestMessage(calls[0]);
+  expect(message.to).toBe("gpego786@gmail.com");
+  expect(message.from).toBe("sender@example.com");
+  expect(message.replyTo).toBe("ana@example.com");
   for (const value of [
     "Ana Teste",
     "ana@example.com",
     "Barbearia",
     "+5511999999999",
   ])
-    expect(body.text).toContain(value);
-  expect(new Headers(calls[0].headers).get("Idempotency-Key")).toBe(
-    new Headers(calls[1].headers).get("Idempotency-Key"),
-  );
+    expect(message.text).toContain(value);
 });
 
-test("rejects invalid data, foreign origins and oversized bodies before contacting provider", async () => {
+test("rejects invalid data, foreign origins and oversized bodies without sending", async () => {
   let calls = 0;
-  globalThis.fetch = async () => {
+  const post = createInterestHandler(async () => {
     calls++;
-    throw new Error("should not call");
-  };
-  const response = await POST(
+  }, smtpConfigured);
+  const response = await post(
     request({ ...lead, email: "bad\r\nBcc:other@example.com", name: "A" }),
   );
   expect(response.status).toBe(422);
   expect((await response.json()).errors).toHaveProperty("email");
   expect(
     (
-      await POST(
+      await post(
         new Request("http://localhost:3000/api/interests", {
           method: "POST",
           headers: { origin: "https://foreign.example" },
@@ -90,41 +96,38 @@ test("rejects invalid data, foreign origins and oversized bodies before contacti
     ).status,
   ).toBe(403);
   expect(
-    (await POST(request({ ...lead, name: "x".repeat(9000) }))).status,
+    (await post(request({ ...lead, name: "x".repeat(9000) }))).status,
   ).toBe(413);
   expect(calls).toBe(0);
 });
 
-test("does not report success without configuration or provider confirmation", async () => {
-  delete process.env.RESEND_API_KEY;
-  expect((await POST(request(lead))).status).toBe(503);
-  process.env.RESEND_API_KEY = "test-key";
-  globalThis.fetch = async () =>
-    Response.json({ error: "provider detail" }, { status: 401 });
-  const rejected = await POST(request(lead));
-  expect(rejected.status).toBe(502);
-  expect(JSON.stringify(await rejected.json())).not.toContain(
-    "provider detail",
+test("missing configuration and failed sends never report success; retry remains possible", async () => {
+  let attempts = 0;
+  const post = createInterestHandler(async () => {
+    attempts++;
+    if (attempts === 1) throw new Error("private provider error");
+  }, smtpConfigured);
+  delete process.env.SMTP_PASS;
+  expect((await post(request(lead))).status).toBe(503);
+  expect(attempts).toBe(0);
+  process.env.SMTP_PASS = "test-only";
+  const failed = await post(request(lead));
+  expect(failed.status).toBe(502);
+  expect(JSON.stringify(await failed.json())).not.toContain(
+    "private provider error",
   );
-  globalThis.fetch = async () => Response.json({});
-  expect((await POST(request(lead))).status).toBe(502);
-  globalThis.fetch = async () => {
-    throw new Error("timeout");
-  };
-  expect((await POST(request(lead))).status).toBe(502);
+  expect((await post(request(lead))).status).toBe(201);
+  expect(attempts).toBe(2);
 });
 
 test("optional WhatsApp and malformed requests", async () => {
-  globalThis.fetch = async (_url, init) => {
-    expect(JSON.parse(String(init?.body)).text).toContain(
-      "WhatsApp: Não informado",
-    );
-    return Response.json({ id: "mock-id" });
-  };
-  expect((await POST(request({ ...lead, whatsapp: "" }))).status).toBe(201);
+  const post = createInterestHandler(async (data) => {
+    expect(interestMessage(data).text).toContain("WhatsApp: Não informado");
+  }, smtpConfigured);
+  expect((await post(request({ ...lead, whatsapp: "" }))).status).toBe(201);
   expect(
     (
-      await POST(
+      await post(
         new Request("http://localhost:3000/api/interests", {
           method: "POST",
           body: "{}",
@@ -134,7 +137,7 @@ test("optional WhatsApp and malformed requests", async () => {
   ).toBe(415);
   expect(
     (
-      await POST(
+      await post(
         new Request("http://localhost:3000/api/interests", {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -143,4 +146,51 @@ test("optional WhatsApp and malformed requests", async () => {
       )
     ).status,
   ).toBe(400);
+});
+
+test("SMTP uses TLS, honors ports and only succeeds on recipient acceptance", async () => {
+  expect(smtpOptions()).toMatchObject({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    requireTLS: true,
+  });
+  process.env.SMTP_PORT = "587";
+  expect(smtpOptions()).toMatchObject({
+    port: 587,
+    secure: false,
+    requireTLS: true,
+  });
+  process.env.SMTP_PORT = "25";
+  expect(smtpConfigured()).toBe(false);
+  process.env.SMTP_PORT = "465";
+  let closed = 0;
+  const data = { ...lead, email: "ana@example.com" };
+  const send = createEmailSender(() => ({
+    sendMail: async (message) => {
+      expect(message.to).toBe("gpego786@gmail.com");
+      return { accepted: ["gpego786@gmail.com"] };
+    },
+    close: () => {
+      closed++;
+    },
+  }));
+  await send(data);
+  const rejected = createEmailSender(() => ({
+    sendMail: async () => ({ accepted: [] }),
+    close: () => {
+      closed++;
+    },
+  }));
+  await expect(rejected(data)).rejects.toThrow("SMTP recipient not accepted");
+  const failed = createEmailSender(() => ({
+    sendMail: async () => {
+      throw new Error("SMTP failure");
+    },
+    close: () => {
+      closed++;
+    },
+  }));
+  await expect(failed(data)).rejects.toThrow("SMTP failure");
+  expect(closed).toBe(3);
 });

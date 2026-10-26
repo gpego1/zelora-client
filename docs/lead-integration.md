@@ -1,35 +1,41 @@
-﻿# Envio de interessados por e-mail
+# Envio de interessados por SMTP
 
-O formulário envia `POST /api/interests` ao servidor Next.js. A rota valida os campos e usa a API REST do Resend para encaminhar nome, e-mail, tipo de estabelecimento e WhatsApp opcional para **gpego786@gmail.com**. O destinatário é fixo no servidor. O endereço do interessado é usado em `reply_to`, não como remetente.
+O formulário envia `POST /api/interests` ao servidor Next.js. Nodemailer encaminha nome, e-mail, tipo de estabelecimento e WhatsApp opcional por SMTP para **gpego786@gmail.com**. O destinatário é fixo no servidor; o e-mail do interessado é usado como `replyTo`.
 
-## Configurar
+## Configurar com Gmail
 
-1. Crie uma chave de envio no Resend e autorize um remetente de domínio verificado.
-2. Copie `.env.example` para `.env.local` e preencha:
+1. Ative a verificação em duas etapas na conta que enviará as mensagens.
+2. Gere uma senha de app em https://myaccount.google.com/apppasswords. Contas gerenciadas ou com Proteção Avançada podem não oferecer essa opção.
+3. Copie `.env.example` para `.env.local` (não sobrescreva configurações locais existentes) e preencha:
 
 ```dotenv
-RESEND_API_KEY=re_sua_chave_privada
-INTEREST_EMAIL_FROM=Zelora <contato@seu-dominio-verificado.com>
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_USER=gpego786@gmail.com
+SMTP_PASS=sua_senha_de_app_sem_espacos
+INTEREST_EMAIL_FROM=
 ```
 
-3. Configure `SITE_URL` com a origem pública real em produção. Reinicie o servidor após alterar as variáveis. Na hospedagem, configure os segredos no servidor, sem prefixo `NEXT_PUBLIC_`.
-4. Execute o Next.js com suporte a rotas de servidor e acesso HTTPS a `api.resend.com`. Exportação puramente estática não executa o envio.
-5. Faça um cadastro de teste, confira o registro no Resend e o recebimento no destino, inclusive spam. Sucesso significa aceite pelo provedor; não comprova entrega na caixa de entrada.
+O remetente usa `SMTP_USER` por padrão. `INTEREST_EMAIL_FROM` é opcional e deve ser autorizado pelo provedor. Não use a senha normal da conta. Não é necessário Resend nem verificar um domínio próprio para enviar pela sua conta Gmail.
 
-Não é necessário fornecer senha do Gmail. Sem chave/remetente, a rota retorna `503`, com erro na interface e preservação dos campos. Credenciais não vão para o navegador ou Git.
+Para outro provedor, configure host, usuário e senha SMTP conforme suas instruções. A porta 465 usa TLS direto; a porta 587 exige STARTTLS. Outras portas são rejeitadas. Credenciais ficam somente no servidor, sem prefixo `NEXT_PUBLIC_` e fora do Git.
+
+Reinicie o servidor após configurar as variáveis. Na hospedagem, adicione-as ao ambiente privado e confirme que conexões SMTP de saída são permitidas. O site precisa de runtime Node.js; exportação estática não executa o envio. Configure `SITE_URL` com a origem pública real em produção.
 
 ## Contrato e comportamento
 
 Payload JSON: `{ "name": "Nome", "email": "nome@example.com", "establishmentType": "Barbearia", "whatsapp": "+5511999999999" }`.
 
-Nome de 2 a 100 caracteres, e-mail válido até 254, tipo dentre as opções da interface e telefone brasileiro opcional com DDD. Validação compartilhada entre cliente e servidor; telefone normalizado com +55. Corpo limitado a 8 KiB; origens de navegador diferentes da aplicação são rejeitadas.
+Nome de 2 a 100 caracteres, e-mail válido até 254, tipo dentre as opções da interface e telefone brasileiro opcional com DDD. Validação compartilhada entre cliente e servidor; telefone normalizado com +55. Corpo limitado a 8 KiB e origem de navegador validada.
 
-Respostas: `201` para aceite confirmado; `400` para JSON inválido; `403` para origem inválida; `413` para corpo excessivo; `415` para formato diferente de JSON; `422` com erros de campo; `429` para limite do provedor; `502` para falha, timeout ou resposta inesperada; `503` para configuração ausente. Detalhes internos do provedor não são expostos ao cliente, e a aplicação não registra dados pessoais em logs.
+Respostas: `201` após aceite SMTP do destinatário; `400` para JSON inválido; `403` para origem inválida; `413` para corpo excessivo; `415` para formato diferente de JSON; `422` com erros de campo; `429` quando o limite de registros temporários da instância é atingido; `502` para erro ou rejeição SMTP; `503` para configuração ausente/inválida. Sucesso significa aceite pelo servidor SMTP, não entrega comprovada na caixa de entrada.
 
-O botão fica bloqueado durante o envio e após sucesso, até edição dos campos. Tentativas com mesmo conteúdo normalizado usam a mesma chave de idempotência no Resend por 24 horas, inclusive após timeout. Alterar o conteúdo gera novo envio. Não há base de leads, fila persistente nem consentimento de marketing adicional. Os dados ficam no e-mail, sujeitos à retenção do provedor e da caixa de destino. Para volumes maiores, configure limites de requisição na hospedagem/WAF.
+O botão bloqueia novos envios durante o processamento e após sucesso, até edição. Pedidos iguais e concorrentes são deduplicados por 10 minutos em memória na mesma instância. Falhas permitem nova tentativa. SMTP não fornece idempotência garantida: reinícios, múltiplas instâncias ou falhas após aceite podem gerar duplicatas. Para garantia entre instâncias, será necessária persistência compartilhada com fila e registro de entrega. Não há base de leads ou marketing adicional. Para maiores volumes, configure limites de requisição na hospedagem/WAF.
+
+Não há logs de dados pessoais na aplicação. Os dados são armazenados na caixa de destino e sujeitos às políticas do provedor de e-mail.
 
 ## Verificação
 
-`corepack pnpm test:e2e` verifica o servidor com provedor simulado (destinatário, reply-to, campos, idempotência, validação e falhas) e o navegador (erro, preservação, envio pendente e sucesso). Não envia e-mails reais.
+`corepack pnpm test:e2e` verifica contrato, validação, configuração TLS, falhas, fechamento do transporte, destinatário fixo, deduplicação em memória e fluxo do formulário com transporte simulado. Não envia e-mails reais. Depois de configurar, faça um cadastro de teste e confira a caixa de destino, inclusive spam.
 
-Referências: [API de envio](https://resend.com/docs/api-reference/emails/send-email), [idempotência](https://resend.com/docs/dashboard/emails/idempotency-keys).
+Referências: [SMTP no Nodemailer](https://nodemailer.com/smtp), [senhas de app Google](https://support.google.com/accounts/answer/185833?hl=pt-BR).

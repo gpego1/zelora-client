@@ -42,7 +42,7 @@ export function InterestForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
-        signal: AbortSignal.timeout(15_000),
+        signal: AbortSignal.timeout(30_000),
       });
       const result = await response.json();
       if (!response.ok) {
