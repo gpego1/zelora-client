@@ -1,32 +1,35 @@
-# Ativação da captação de interesse
+﻿# Envio de interessados por e-mail
 
-## Estado atual
+O formulário envia `POST /api/interests` ao servidor Next.js. A rota valida os campos e usa a API REST do Resend para encaminhar nome, e-mail, tipo de estabelecimento e WhatsApp opcional para **gpego786@gmail.com**. O destinatário é fixo no servidor. O endereço do interessado é usado em `reply_to`, não como remetente.
 
-Não existe endpoint de leads no repositório inspecionado. O formulário é exclusivamente demonstrativo: valida no navegador e mantém os valores no DOM, sem requisição, persistência, localStorage ou mensagem de cadastro concluído. Nenhuma variável de ambiente o transforma automaticamente em cadastro real. Não há analytics ou coleta de marketing.
+## Configurar
 
-## Contrato sugerido (não implementado)
+1. Crie uma chave de envio no Resend e autorize um remetente de domínio verificado.
+2. Copie `.env.example` para `.env.local` e preencha:
 
-Criar no backend um `POST /api/v1/interests`, na mesma origem por proxy. Payload JSON:
-
-```json
-{
-  "name": "Nome da pessoa",
-  "email": "nome@exemplo.com",
-  "establishmentType": "Barbearia",
-  "whatsapp": "+5511999999999"
-}
+```dotenv
+RESEND_API_KEY=re_sua_chave_privada
+INTEREST_EMAIL_FROM=Zelora <contato@seu-dominio-verificado.com>
 ```
 
-`name`: obrigatório, trim, entre 2 e 100 caracteres. `email`: obrigatório, endereço válido, até 254 caracteres. `establishmentType`: obrigatório, enum sincronizado com as opções da interface. `whatsapp`: opcional, telefone brasileiro normalizado; aceitar DDD com 10/11 dígitos e prefixo 55 opcional. A ausência de consentimento de marketing significa nenhum marketing autorizado.
+3. Configure `SITE_URL` com a origem pública real em produção. Reinicie o servidor após alterar as variáveis. Na hospedagem, configure os segredos no servidor, sem prefixo `NEXT_PUBLIC_`.
+4. Execute o Next.js com suporte a rotas de servidor e acesso HTTPS a `api.resend.com`. Exportação puramente estática não executa o envio.
+5. Faça um cadastro de teste, confira o registro no Resend e o recebimento no destino, inclusive spam. Sucesso significa aceite pelo provedor; não comprova entrega na caixa de entrada.
 
-Respostas propostas: `201` com identificador opaco; `422` com `{ "errors": { "email": "mensagem" } }`; `429` para excesso de tentativas; `5xx` para falha temporária. Não devolver dados pessoais no corpo de resposta ou logs. Definir chave de idempotência por tentativa para evitar duplicação em repetição da mesma requisição.
+Não é necessário fornecer senha do Gmail. Sem chave/remetente, a rota retorna `503`, com erro na interface e preservação dos campos. Credenciais não vão para o navegador ou Git.
 
-## Trabalho necessário para ativar
+## Contrato e comportamento
 
-1. Implementar persistência e validação no backend real, limites de requisição, tratamento de duplicatas e política de retenção. Confirmar finalidade, responsável pelo contato e destino real da política de privacidade.
-2. Configurar URL privada do backend no servidor/proxy, HTTPS e origens permitidas. Não inserir credenciais em variáveis `NEXT_PUBLIC_*`.
-3. Integrar o formulário ao contrato confirmado. Incluir estado de envio, botão desabilitado enquanto pendente, tratamento de erros de campo/servidor, preservação dos dados em falha e sucesso apenas após resposta confirmada. Remover os avisos de demonstração somente nessa entrega.
-4. Caso marketing adicional seja desejado, incluir consentimento específico, separado, opcional e desmarcado. Registrar versão do consentimento no backend.
-5. Verificar envio real, falha de rede, `422`, `429`, repetição e navegação por teclado em testes de integração. Atualizar a FAQ e este documento.
+Payload JSON: `{ "name": "Nome", "email": "nome@example.com", "establishmentType": "Barbearia", "whatsapp": "+5511999999999" }`.
 
-Ainda não há domínio confirmado; URL canônica e URLs absolutas de compartilhamento ficam pendentes. Nenhum preço, prazo comercial ou data de lançamento foi definido.
+Nome de 2 a 100 caracteres, e-mail válido até 254, tipo dentre as opções da interface e telefone brasileiro opcional com DDD. Validação compartilhada entre cliente e servidor; telefone normalizado com +55. Corpo limitado a 8 KiB; origens de navegador diferentes da aplicação são rejeitadas.
+
+Respostas: `201` para aceite confirmado; `400` para JSON inválido; `403` para origem inválida; `413` para corpo excessivo; `415` para formato diferente de JSON; `422` com erros de campo; `429` para limite do provedor; `502` para falha, timeout ou resposta inesperada; `503` para configuração ausente. Detalhes internos do provedor não são expostos ao cliente, e a aplicação não registra dados pessoais em logs.
+
+O botão fica bloqueado durante o envio e após sucesso, até edição dos campos. Tentativas com mesmo conteúdo normalizado usam a mesma chave de idempotência no Resend por 24 horas, inclusive após timeout. Alterar o conteúdo gera novo envio. Não há base de leads, fila persistente nem consentimento de marketing adicional. Os dados ficam no e-mail, sujeitos à retenção do provedor e da caixa de destino. Para volumes maiores, configure limites de requisição na hospedagem/WAF.
+
+## Verificação
+
+`corepack pnpm test:e2e` verifica o servidor com provedor simulado (destinatário, reply-to, campos, idempotência, validação e falhas) e o navegador (erro, preservação, envio pendente e sucesso). Não envia e-mails reais.
+
+Referências: [API de envio](https://resend.com/docs/api-reference/emails/send-email), [idempotência](https://resend.com/docs/dashboard/emails/idempotency-keys).

@@ -1507,6 +1507,22 @@ button {
 .form-submit {
   width: 100%;
 }
+fieldset.form-grid {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.button:disabled {
+  opacity: 0.65;
+  cursor: default;
+  transform: none;
+}
+.validation-notice.send-error {
+  color: #983522;
+  background: #fbede7;
+  border-color: #c68c78;
+}
 .form-caption {
   font-size: 9px;
   color: var(--muted);

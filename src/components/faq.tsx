@@ -19,7 +19,7 @@ const questions = [
   ],
   [
     "Como posso conhecer a plataforma?",
-    "Você pode explorar os exemplos desta página. O produto está em desenvolvimento e ainda não há cadastro de interesse conectado: o formulário abaixo é uma demonstração e não envia nem armazena os dados. A disponibilidade comercial não foi definida.",
+    "Explore os exemplos desta página e envie seu interesse pelo formulário abaixo. Os dados serão encaminhados por e-mail à equipe Zelora para conversar sobre a plataforma. O produto está em desenvolvimento e a disponibilidade comercial ainda não foi definida.",
   ],
 ];
 

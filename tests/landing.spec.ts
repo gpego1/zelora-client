@@ -39,7 +39,7 @@ for (const width of [320, 390, 768, 1024, 1440]) {
   });
 }
 
-test("demo validates, preserves input, and never sends a lead", async ({
+test("interest validates, preserves input on failure and prevents duplicate sends", async ({
   page,
 }) => {
   const posts: string[] = [];
@@ -61,16 +61,36 @@ test("demo validates, preserves input, and never sends a lead", async ({
   await expect(page.getByLabel("WhatsApp")).toBeFocused();
   await expect(page.getByLabel("Seu nome")).toHaveValue("Ana Teste");
   await page.getByLabel("WhatsApp").fill("+55 (11) 99999-9999");
-  await form.getByRole("button").click();
-  await expect(page.getByRole("status")).toContainText(
-    "Nenhum dado foi enviado ou armazenado",
+  expect(posts).toEqual([]);
+  await page.route("**/api/interests", (route) =>
+    route.fulfill({ status: 502, json: { message: "Falha temporária" } }),
   );
   await form.getByRole("button").click();
-  expect(posts).toEqual([]);
+  await expect(page.getByRole("status")).toContainText(
+    "Não foi possível enviar",
+  );
+  await expect(page.getByLabel("Seu nome")).toHaveValue("Ana Teste");
+  await expect(page.getByLabel("WhatsApp")).toHaveValue("+55 (11) 99999-9999");
   expect(await page.evaluate(() => localStorage.length)).toBe(0);
   await page.getByLabel("WhatsApp").fill("");
+  await page.unroute("**/api/interests");
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/api/interests", async (route) => {
+    await pending;
+    await route.fulfill({ status: 201, json: { message: "Enviado" } });
+  });
   await form.getByRole("button").click();
-  await expect(page.getByRole("status")).toContainText("Campos validados");
+  await expect(form.getByRole("button")).toHaveText(/Enviando/);
+  await expect(form.getByRole("button")).toBeDisabled();
+  release();
+  await expect(page.getByRole("status")).toContainText(
+    "Seu interesse foi enviado",
+  );
+  await expect(form.getByRole("button")).toBeDisabled();
+  expect(posts).toHaveLength(2);
 });
 
 test("mobile menu and FAQ support keyboard interaction", async ({ page }) => {

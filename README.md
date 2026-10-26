@@ -21,7 +21,7 @@ O produto é apresentado como em desenvolvimento. Os recursos descritos são a p
 
 ## Formulário e configuração
 
-O formulário é uma demonstração com validação local: não envia, não armazena e não confirma cadastro. O contrato sugerido e os requisitos para a integração real estão em [docs/lead-integration.md](docs/lead-integration.md).
+O formulário envia os dados para `gpego786@gmail.com` pela rota de servidor `/api/interests`, usando Resend. Configure `RESEND_API_KEY` e `INTEREST_EMAIL_FROM` no ambiente privado do servidor. Sem essas variáveis, o envio retorna erro e os dados permanecem no formulário. Configuração e contrato em [docs/lead-integration.md](docs/lead-integration.md).
 
 Copie `.env.example` para `.env.local` e defina `SITE_URL` com a origem pública real antes do build de produção. Essa variável configura as URLs absolutas das imagens sociais; sem ela o Next.js usa localhost em desenvolvimento. Não há domínio confirmado nem URL canônica configurada.
 
@@ -32,7 +32,7 @@ corepack pnpm build
 corepack pnpm test:e2e
 ```
 
-Os testes usam Chrome instalado (`channel: chrome`) e iniciam o servidor de produção automaticamente. Se necessário, instale o navegador com `corepack pnpm exec playwright install chrome`. Cobrem larguras de 320, 390, 768, 1024 e 1440 px, links internos, menu e FAQ por teclado, metadados, movimento reduzido e validação sem envio ou persistência. Capturas locais ficam em `.artifacts/`, fora do Git.
+Os testes usam Chrome instalado (`channel: chrome`) e iniciam o servidor de produção automaticamente. Se necessário, instale o navegador com `corepack pnpm exec playwright install chrome`. Cobrem larguras de 320, 390, 768, 1024 e 1440 px, links internos, menu e FAQ por teclado, metadados, movimento reduzido e o fluxo do formulário. O provedor de e-mail é simulado nos testes; nenhum e-mail real é enviado. Capturas locais ficam em `.artifacts/`, fora do Git.
 
 ## Incrementos
 

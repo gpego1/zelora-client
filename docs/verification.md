@@ -1,4 +1,12 @@
-# Verificação da landing
+# Histórico de verificação da landing
+
+## Atualização: envio por e-mail
+
+A captação demonstrativa da revisão inicial abaixo foi substituída por `/api/interests`, com envio via Resend para `gpego786@gmail.com`. A suíte cobre também contrato do e-mail, validação no servidor, idempotência, falta de configuração, falhas do provedor e fluxo de envio no navegador. Os testes simulam o provedor; entrega real depende de `RESEND_API_KEY`, `INTEREST_EMAIL_FROM` e teste na caixa de destino.
+
+Lint, tipos e build aprovados; 12 testes aprovados. A suíte usa uma instância dedicada na porta 3100, sem reutilizar servidores existentes para evitar divergência entre HTML e arquivos de um build anterior.
+
+## Revisão inicial
 
 Revisão em 26/10/2026, Node.js 24.12.0, pnpm 12.15.0 e Chrome local via Playwright.
 

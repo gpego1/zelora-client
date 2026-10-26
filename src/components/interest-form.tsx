@@ -1,52 +1,76 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ArrowUpRight, Info } from "lucide-react";
-
-const establishmentTypes = [
-  "Barbearia",
-  "Salão de beleza",
-  "Estúdio de unhas e sobrancelhas",
-  "Centro de estética",
-  "Profissional autônomo",
-  "Outro negócio de autocuidado",
-];
-type Field = "name" | "email" | "establishmentType" | "whatsapp";
-type Errors = Partial<Record<Field, string>>;
+import { ArrowUpRight } from "lucide-react";
+import {
+  establishmentTypes,
+  validateInterest,
+  type Field,
+  type Errors,
+} from "@/lib/interest";
 
 export function InterestForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const [errors, setErrors] = useState<Errors>({});
-  const [checked, setChecked] = useState(false);
+  const pendingRef = useRef(false);
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
+    "idle",
+  );
+  const [message, setMessage] = useState("");
 
-  function validate(event: React.SubmitEvent<HTMLFormElement>) {
+  async function validate(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const value = (field: Field) => String(data.get(field) ?? "").trim();
-    const next: Errors = {};
-    if (value("name").length < 2)
-      next.name = "Informe seu nome com pelo menos 2 caracteres.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value("email")))
-      next.email = "Informe um e-mail válido, como nome@exemplo.com.";
-    if (!establishmentTypes.includes(value("establishmentType")))
-      next.establishmentType = "Selecione o tipo do seu negócio.";
-    const digits = value("whatsapp").replace(/\D/g, "");
-    if (
-      value("whatsapp") &&
-      (!/^[+\d\s().-]+$/.test(value("whatsapp")) ||
-        !/^(?:55)?\d{10,11}$/.test(digits))
-    )
-      next.whatsapp =
-        "Informe DDD e telefone, com 10 ou 11 dígitos. O código +55 é opcional.";
+    if (pendingRef.current || status === "sent") return;
+    const { data, errors: next } = validateInterest(
+      Object.fromEntries(new FormData(event.currentTarget)),
+    );
     setErrors(next);
-    setChecked(Object.keys(next).length === 0);
+    setMessage("");
     const first = Object.keys(next)[0];
-    if (first)
+    if (first) {
       formRef.current
         ?.querySelector<HTMLInputElement | HTMLSelectElement>(
           `[name="${first}"]`,
         )
         ?.focus();
+      return;
+    }
+    pendingRef.current = true;
+    setStatus("sending");
+    try {
+      const response = await fetch("/api/interests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        signal: AbortSignal.timeout(15_000),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        if (response.status === 422 && result.errors) {
+          const serverErrors: Errors = {};
+          for (const field of [
+            "name",
+            "email",
+            "establishmentType",
+            "whatsapp",
+          ] as Field[]) {
+            if (typeof result.errors[field] === "string")
+              serverErrors[field] = result.errors[field];
+          }
+          setErrors(serverErrors);
+        }
+        throw new Error("send_failed");
+      }
+      setStatus("sent");
+      setMessage("Seu interesse foi enviado. Obrigado por conhecer o Zelora!");
+    } catch {
+      setStatus("error");
+      setMessage(
+        "Não foi possível enviar seu interesse agora. Seus dados foram mantidos no formulário. Tente novamente mais tarde.",
+      );
+    } finally {
+      pendingRef.current = false;
+    }
   }
 
   const fieldProps = (field: Field) => ({
@@ -66,17 +90,15 @@ export function InterestForm() {
       className="interest-form"
       noValidate
       onSubmit={validate}
-      onChange={() => setChecked(false)}
-      aria-describedby="demo-notice contact-purpose"
+      onChange={() => {
+        setStatus("idle");
+        setMessage("");
+      }}
+      aria-describedby="contact-purpose"
+      aria-busy={status === "sending"}
     >
-      <div className="demo-notice" id="demo-notice">
-        <Info size={18} />
-        <p>
-          <b>Formulário de demonstração</b>Você pode testar os campos. Os dados
-          não serão enviados nem armazenados.
-        </p>
-      </div>
-      <div className="form-grid">
+      <fieldset className="form-grid" disabled={status === "sending"}>
+        <legend className="sr-only">Seus dados para conhecer o Zelora</legend>
         <div className="field">
           <label htmlFor="name">
             Seu nome <span>*</span>
@@ -155,26 +177,34 @@ export function InterestForm() {
           </span>
           {error("whatsapp")}
         </div>
-      </div>
+      </fieldset>
       <p id="contact-purpose" className="contact-purpose">
-        Na versão ativa, essas informações servirão para entrar em contato sobre
-        o Zelora. Este teste não cadastra seu interesse nem autoriza mensagens
-        de marketing.
+        Ao enviar, seus dados serão encaminhados por e-mail à equipe Zelora para
+        entrar em contato sobre a plataforma. Isso não autoriza mensagens
+        adicionais de marketing.
       </p>
-      <button type="submit" className="button form-submit">
-        Quero conhecer o Zelora <ArrowUpRight size={18} />
+      <button
+        type="submit"
+        className="button form-submit"
+        disabled={status === "sending" || status === "sent"}
+      >
+        {status === "sending"
+          ? "Enviando…"
+          : status === "sent"
+            ? "Interesse enviado"
+            : "Quero conhecer o Zelora"}{" "}
+        <ArrowUpRight size={18} />
       </button>
-      <p className="form-caption">
-        Demonstração: o botão apenas valida os campos.
-      </p>
       <div
         role="status"
         aria-live="polite"
-        className={checked ? "validation-notice" : "sr-only"}
+        className={
+          message
+            ? `validation-notice${status === "error" ? " send-error" : ""}`
+            : "sr-only"
+        }
       >
-        {checked
-          ? "Campos validados nesta demonstração. Nenhum dado foi enviado ou armazenado. O cadastro de interesse ainda não está disponível."
-          : ""}
+        {message}
       </div>
     </form>
   );
